@@ -1,0 +1,64 @@
+services:
+
+  jenkins:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        DOCKER_GID: ${DOCKER_GID:-999}
+
+    container_name: jenkins
+
+    ports:
+      - "8082:8080"
+      - "50000:50000"
+
+    environment:
+      CASC_JENKINS_CONFIG: /var/jenkins_home/jenkins.yaml
+      JAVA_OPTS: -Djenkins.install.runSetupWizard=false
+
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./Jenkinsfile:/pipeline/Jenkinsfile
+      - ./jenkins.yaml:/var/jenkins_home/jenkins.yaml
+      - ../app:/app
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/login"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+  jenkins-trigger:
+    image: curlimages/curl:latest
+    container_name: jenkins-trigger
+
+    depends_on:
+      jenkins:
+        condition: service_healthy
+
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+
+        echo "Jenkins is ready"
+        echo "Getting Jenkins crumb..."
+
+        COOKIES=/tmp/cookies.txt
+        CRUMB=$$(curl -sf -c "$$COOKIES" -b "$$COOKIES" "http://jenkins:8080/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,%22:%22,//crumb)")
+
+        echo "Crumb: $$CRUMB"
+        echo "Triggering deploy-nginx-redis..."
+
+        curl -sf -c "$$COOKIES" -b "$$COOKIES" -X POST \
+          -H "$$CRUMB" \
+          http://jenkins:8080/job/deploy-nginx-redis/build
+
+        echo "Build triggered successfully"
+
+volumes:
+  jenkins_home:

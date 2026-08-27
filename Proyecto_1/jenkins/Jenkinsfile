@@ -1,0 +1,79 @@
+pipeline {
+
+    agent any
+
+    stages {
+
+        stage('Validate Docker') {
+            steps {
+                sh '''
+                    docker --version
+                    docker compose version
+                '''
+            }
+        }
+
+        stage('Stop Previous Deployment') {
+            steps {
+                sh '''
+                    docker compose -f /app/docker-compose.yml down --remove-orphans || true
+                '''
+            }
+        }
+
+        stage('Deploy Containers') {
+            steps {
+                sh '''
+                    docker compose -f /app/docker-compose.yml up -d
+                '''
+            }
+        }
+
+        stage('Check Containers') {
+            steps {
+                sh '''
+                    docker compose -f /app/docker-compose.yml ps
+                '''
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                sh '''
+                    sleep 10
+
+                    docker inspect --format='{{.Name}} -> {{.State.Status}} -> {{.State.Health.Status}}' demo-nginx
+                    docker inspect --format='{{.Name}} -> {{.State.Status}} -> {{.State.Health.Status}}' demo-redis
+
+                    docker exec demo-nginx wget --spider -q http://localhost
+
+                    docker exec demo-redis redis-cli ping
+                '''
+            }
+        }
+
+        stage('Network Test') {
+            steps {
+                sh '''
+                    docker exec demo-nginx getent hosts redis
+                '''
+            }
+        }
+    }
+
+    post {
+
+        success {
+            echo 'Deployment successful!'
+        }
+
+        failure {
+            echo 'Deployment failed.'
+            sh 'docker compose -f /app/docker-compose.yml logs || true'
+        }
+
+        always {
+            sh 'docker compose -f /app/docker-compose.yml ps'
+        }
+    }
+}

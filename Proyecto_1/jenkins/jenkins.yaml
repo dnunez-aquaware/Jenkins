@@ -1,0 +1,29 @@
+jenkins:
+  systemMessage: "Jenkins local Docker lab"
+  numExecutors: 2
+
+  authorizationStrategy:
+    projectMatrix:
+      permissions:
+        - "Overall/Read:anonymous"
+        - "Job/Read:anonymous"
+        - "Job/Build:anonymous"
+        - "Job/Cancel:anonymous"
+
+jobs:
+  - script: |
+      def jenkinsfile = new File('/pipeline/Jenkinsfile').text
+
+      pipelineJob('deploy-nginx-redis') {
+
+        definition {
+          cps {
+            script(jenkinsfile)
+            sandbox()
+          }
+        }
+
+        properties {
+          disableConcurrentBuilds()
+        }
+      }
