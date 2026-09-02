@@ -1,0 +1,33 @@
+services:
+
+  jenkins:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        DOCKER_GID: ${DOCKER_GID:-999}
+
+    container_name: jenkins
+
+    ports:
+      - "8082:8080"
+      - "50000:50000"
+
+    environment:
+      CASC_JENKINS_CONFIG: /var/jenkins_home/jenkins.yaml
+      JAVA_OPTS: -Djenkins.install.runSetupWizard=false
+
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./jenkins.yaml:/var/jenkins_home/jenkins.yaml
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/login"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+volumes:
+  jenkins_home:

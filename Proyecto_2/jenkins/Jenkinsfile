@@ -1,0 +1,105 @@
+pipeline {
+
+    agent any
+
+    environment {
+        AWS_REGION = 'us-east-1'
+        AWS_ACCOUNT_ID = 'TU_ACCOUNT_ID'
+
+        ECR_REPOSITORY = 'jenkins-docker-lab/nginx'
+        ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+        ECR_IMAGE = "${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
+    }
+
+    stages {
+
+        stage('Validate Tools') {
+            steps {
+                sh '''
+                    docker --version
+                    docker compose version
+                    aws --version
+                    terraform --version
+                '''
+            }
+        }
+
+        stage('Validate AWS') {
+            steps {
+                sh '''
+                    aws sts get-caller-identity
+                '''
+            }
+        }
+
+        stage('Terraform Init') {
+            steps {
+                dir('aws') {
+                    sh '''
+                        terraform init -backend-config=../bootstrap/backend.hcl
+                    '''
+                }
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                dir('aws') {
+                    sh '''
+                        terraform plan
+                    '''
+                }
+            }
+        }
+
+        stage('Terraform Apply') {
+            steps {
+                dir('aws') {
+                    sh '''
+                        terraform apply -auto-approve
+                    '''
+                }
+            }
+        }
+
+        stage('Login to ECR') {
+            steps {
+                sh '''
+                    aws ecr get-login-password --region ${AWS_REGION} |
+                    docker login \
+                      --username AWS \
+                      --password-stdin ${ECR_REGISTRY}
+                '''
+            }
+        }
+
+        stage('Build Image') {
+            steps {
+                sh '''
+                    docker build \
+                      -t ${ECR_IMAGE} \
+                      app
+                '''
+            }
+        }
+
+        stage('Push Image to ECR') {
+            steps {
+                sh '''
+                    docker push ${ECR_IMAGE}
+                '''
+            }
+        }
+    }
+
+    post {
+
+        success {
+            echo 'Infrastructure created and image successfully pushed to ECR!'
+        }
+
+        failure {
+            echo 'Pipeline failed.'
+        }
+    }
+}

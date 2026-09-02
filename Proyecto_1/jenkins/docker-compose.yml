@@ -18,7 +18,7 @@ services:
       JAVA_OPTS: -Djenkins.install.runSetupWizard=false
 
     volumes:
-      - jenkins_home:/var/jenkins_home
+      - jenkins_home:/var/jenkins_home  #docker volume, crea jenkins home el mismo docker y lo administrass
       - /var/run/docker.sock:/var/run/docker.sock
       - ./Jenkinsfile:/pipeline/Jenkinsfile
       - ./jenkins.yaml:/var/jenkins_home/jenkins.yaml
