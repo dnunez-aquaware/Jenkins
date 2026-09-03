@@ -1,1 +1,11 @@
 Errores.md
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+
+# Terraform lock file
+# NO ignores .terraform.lock.hcl

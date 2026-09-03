@@ -33,7 +33,7 @@ dnf install -y jenkins
 mkdir -p /var/lib/jenkins
 
 wget \
-  "https://raw.githubusercontent.com/TU_USUARIO/TU_REPOSITORIO/main/jenkins/jenkins.yaml" \
+  "https://raw.githubusercontent.com/dnunez-aquaware/Jenkins/main/Proyecto_Final/jenkins/jenkins.yaml" \
   -O /var/lib/jenkins/jenkins.yaml
 
 chown jenkins:jenkins /var/lib/jenkins/jenkins.yaml

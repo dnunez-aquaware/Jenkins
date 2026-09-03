@@ -1,0 +1,40 @@
+jenkins:
+  systemMessage: "Jenkins AWS Docker lab"
+  numExecutors: 2
+
+  authorizationStrategy:
+    projectMatrix:
+      permissions:
+        - "Overall/Read:anonymous"
+        - "Job/Read:anonymous"
+        - "Job/Build:anonymous"
+        - "Job/Cancel:anonymous"
+
+jobs:
+  - script: |
+      pipelineJob('deploy-nginx-redis') {
+
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote {
+                  url('https://github.com/TU_USUARIO/TU_REPOSITORIO.git')
+                }
+
+                branch('*/main')
+              }
+            }
+
+            scriptPath('jenkins/Jenkinsfile')
+          }
+        }
+
+        triggers {
+          githubPush()
+        }
+
+        properties {
+          disableConcurrentBuilds()
+        }
+      }
