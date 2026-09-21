@@ -15,6 +15,6 @@ spec:   # CONFIGURACION DESEADA DEL DEPLOYMENT
     spec: # CONFIGURACION DESEADA DE LOS PODS
       containers:
         - name: nginx
-          image: nginx:1.27
+          image: 087692765125.dkr.ecr.us-east-1.amazonaws.com/cloud-dashboard:v1.0.0
           ports:
             - containerPort: 80
