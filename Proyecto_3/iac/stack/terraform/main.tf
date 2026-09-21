@@ -207,7 +207,7 @@ resource "aws_eks_cluster" "main" {
   vpc_config {
     subnet_ids = [
       aws_subnet.private_a.id,
-      aws_subnet.private_b.id
+      aws_subnet.private_b.id 
     ]
 
     endpoint_public_access  = true
@@ -280,7 +280,7 @@ resource "aws_eks_node_group" "main" {
   scaling_config {
     min_size     = 1
     desired_size = 1
-    max_size     = 1
+    max_size     = 2
   }
 
   depends_on = [

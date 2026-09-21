@@ -1,0 +1,15 @@
+
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
+
+
+daniel@Yoga:~/Repositorio-Bootcamp/Jenkins/Proyecto_4/iac/stack/k8s$ kubectl get applications -n argocd
+NAME          SYNC STATUS   HEALTH STATUS
+gitops-demo   Unknown       Healthy
+
+
+forzar reconciliacion con el manifiesto
+
+kubectl -n argocd annotate application gitops-demo \
+  argocd.argoproj.io/refresh=hard \
+  --overwrite

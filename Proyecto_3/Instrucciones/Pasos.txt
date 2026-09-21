@@ -43,11 +43,7 @@ echo
 pass=$(openssl rand -base64 48 | tr -d "=+/" | head -c 32)
 
 hashed_pass=$(htpasswd -bnBC 10 "" "$pass" | tr -d ':\n')
-helm install cert-manager jetstack/cert-manager \
-  --namespace cert-manager \
-  --create-namespace \
-  --set crds.enabled=true \
-  --wait
+
 signing_key=$(openssl rand -base64 48 | tr -d "=+/" | head -c 32)
 
 echo "Kargo password: $pass"
