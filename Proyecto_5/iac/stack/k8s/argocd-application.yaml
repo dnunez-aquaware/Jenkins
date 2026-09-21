@@ -9,7 +9,7 @@ spec:
   source:
     repoURL: https://github.com/dnunez-aquaware/Jenkins.git
     targetRevision: master
-    path: Proyecto_4/iac/stack/k8s
+    path: Proyecto_5/iac/stack/k8s
 
   destination:
     server: https://kubernetes.default.svc  #representa el DNS del API server
