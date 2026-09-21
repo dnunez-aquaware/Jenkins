@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application #Administra los recursos DE GITHUB con la configuracion de GITHUB
+metadata:
+  name: gitops-demo
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/dnunez-aquaware/Jenkins.git
+    targetRevision: master
+    path: Proyecto_4/iac/stack/k8s
+
+  destination:
+    server: https://kubernetes.default.svc  #representa el DNS del API server
+    namespace: default
+
+  syncPolicy:
+    automated:
+      prune: true #Recursos que ya no existen
+      selfHeal: true #detecta driff por cosas que se modificaron en kubernetes y no en git

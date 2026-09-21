@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service #Punto de acceso estable a un pod
+metadata:
+  name: nginx
+  namespace: default
+spec:
+  selector:
+    app: nginx
+  ports:
+    - port: 80 #Punto de recepcion del service
+      targetPort: 80
+  type: ClusterIP #crea una ip Virtual interna para que los pods se puedan comunicar entre service
+ # type: Ingress # Como balanceador de capa 7, enruta el trafico entre diversos selectores
