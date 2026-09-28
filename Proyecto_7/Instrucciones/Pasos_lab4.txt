@@ -1,0 +1,40 @@
+#####################Desplegar 3 ambientes###############
+
+kubectl apply -f iac/stack/argocd/dev.yaml
+kubectl apply -f iac/stack/argocd/staging.yaml
+kubectl apply -f iac/stack/argocd/prod.yaml
+
+kubectl -n argocd get applications
+kubectl get pods -n dev
+kubectl get pods -n staging
+kubectl get pods -n prod
+
+# prod no tiene auto-sync
+argocd app sync cloud-dashboard-prod
+
+
+#####################Promover###############
+
+# nueva version -> dev
+sed -i "s|cloud-dashboard:v[0-9.]*|cloud-dashboard:v1.0.1|" iac/stack/envs/dev/deployment.yaml
+git commit -am "dev: v1.0.1" && git push
+
+# dev -> staging
+iac/stack/promotion/promote.sh dev staging
+git commit -am "promote staging" && git push
+
+# staging -> prod
+iac/stack/promotion/promote.sh staging prod
+git commit -am "promote prod" && git push
+argocd app sync cloud-dashboard-prod
+
+# ver que version corre en cada ambiente
+kubectl get deploy cloud-dashboard -n dev     -o jsonpath='{.spec.template.spec.containers[0].image}'
+kubectl get deploy cloud-dashboard -n staging -o jsonpath='{.spec.template.spec.containers[0].image}'
+kubectl get deploy cloud-dashboard -n prod    -o jsonpath='{.spec.template.spec.containers[0].image}'
+
+
+#####################Destruir###############
+
+kubectl delete -f iac/stack/argocd/
+kubectl delete namespace dev staging prod

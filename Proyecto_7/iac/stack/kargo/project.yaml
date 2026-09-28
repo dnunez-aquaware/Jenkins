@@ -1,0 +1,5 @@
+# Kargo crea automaticamente el namespace "cloud-dashboard" para el proyecto.
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Project
+metadata:
+  name: cloud-dashboard

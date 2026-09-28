@@ -1,0 +1,42 @@
+// Promueve la version de un ambiente al siguiente (dev -> staging -> prod).
+pipeline {
+    agent any
+
+    parameters {
+        choice(name: 'PROMOTION', choices: ['dev->staging', 'staging->prod'],
+               description: 'Ambiente origen -> destino')
+    }
+
+    environment {
+        STACK_DIR = 'Proyecto_6/iac/stack'
+    }
+
+    stages {
+        stage('Aprobacion') {
+            when { expression { params.PROMOTION == 'staging->prod' } }
+            steps {
+                input message: 'Promover a prod?'
+            }
+        }
+
+        stage('Promover') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'github-credentials',
+                    usernameVariable: 'GIT_USER',
+                    passwordVariable: 'GIT_TOKEN')]) {
+                    sh '''
+                        set -eu
+                        FROM="${PROMOTION%%->*}"
+                        TO="${PROMOTION##*->}"
+                        ${STACK_DIR}/promotion/promote.sh "$FROM" "$TO"
+                        git config user.email "jenkins@local"
+                        git config user.name "Jenkins"
+                        git commit -am "promote(cloud-dashboard): ${FROM} -> ${TO}"
+                        git push "https://${GIT_USER}:${GIT_TOKEN}@github.com/dnunez-aquaware/Jenkins.git" HEAD:master
+                    '''
+                }
+            }
+        }
+    }
+}

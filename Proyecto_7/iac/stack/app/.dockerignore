@@ -1,0 +1,6 @@
+Jenkinsfile
+README.md
+scripts/
+.dockerignore
+.git
+.gitignore

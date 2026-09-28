@@ -1,0 +1,139 @@
+aws eks update-kubeconfig \
+  --region us-east-1 \
+  --name gitops-lab \
+  --profile dnunez
+
+
+kubectl get pods -n cert-manager
+
+#-----------------------------------AGREGAR REPOSITORIO DE CERT-MANAGER--------------------------
+helm repo add jetstack https://charts.jetstack.io
+#-------------------------ACTUALIZA REPOSITORIOS DE INFO MAS RECIENTE---------------------
+helm repo update
+
+#---------------INSTALA LOS RECURSOS---------------------------------
+#Permite que las aplicaciones usen HTTPS obtiene 
+
+helm install cert-manager jetstack/cert-manager \
+  --namespace cert-manager \
+  --create-namespace \
+  --set crds.enabled=true \
+  --wait
+
+#----------------------------NAMESPACE------------------------------------
+
+kubectl create namespace argocd
+
+
+kubectl apply \
+  -n argocd \
+  --server-side \
+  --force-conflicts \
+  -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+
+
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+
+
+kubectl -n argocd get secret argocd-initial-admin-secret \
+  -o jsonpath="{.data.password}" | base64 -d
+echo
+
+
+
+pass=$(openssl rand -base64 48 | tr -d "=+/" | head -c 32)
+
+hashed_pass=$(htpasswd -bnBC 10 "" "$pass" | tr -d ':\n')
+signing_key=$(openssl rand -base64 48 | tr -d "=+/" | head -c 32)
+
+echo "Kargo password: $pass"
+
+docker login ghcr.io
+docker logout ghcr.io
+
+helm install kargo \
+  oci://ghcr.io/akuity/kargo-charts/kargo \
+  --namespace kargo \
+  --create-namespace \
+  --set api.adminAccount.passwordHash="$hashed_pass" \
+  --set api.adminAccount.tokenSigningKey="$signing_key" \
+  --wait
+
+
+kubectl get svc -n kargo
+
+
+
+kubectl get nodes
+
+kubectl get pods -n argocd
+
+kubectl get pods -n kargo
+
+kubectl get svc -n argocd
+
+kubectl get svc -n kargo
+
+diagnóstico
+---------------------------------------------------------------------
+daniel@Yoga:~/Repositorio-Bootcamp/Jenkins/Proyecto_3/Instrucciones$ kubectl get pods -n kargo
+NAME                                              READY   STATUS    RESTARTS   AGE
+kargo-api-68d5547475-5ftpp                        1/1     Running   0          2m58s
+kargo-controller-6b9f4c9ff8-ccr78                 1/1     Running   0          2m58s
+kargo-external-webhooks-server-5b465c5764-tsmzg   0/1     Pending   0          2m58s
+kargo-management-controller-75b677657c-z5q2v      0/1     Pending   0          2m58s
+kargo-webhooks-server-5655f5fbc8-22xw7            1/1     Running   0          2m58s
+
+kubectl describe pod -n kargo kargo-external-webhooks-server-5b465c5764-tsmzg
+0/1 nodes are available: 1 Too many pods. no new claims to deallocate, preemption: 0/1 nodes are available: 1 No preemption victims found for incoming pod.
+kubectl describe node
+Capacity:
+  pods: 17
+
+Non-terminated Pods:
+  (17 in total)
+
+
+aws eks list-nodegroups \
+  --cluster-name gitops-lab \
+  --region us-east-1 \
+  --profile dnunez
+{
+    "nodegroups": [
+        "main"
+    ]
+}
+
+aws eks update-nodegroup-config \
+  --cluster-name gitops-lab \
+  --nodegroup-name main \
+  --scaling-config minSize=1,maxSize=2,desiredSize=2 \
+  --region us-east-1 \
+  --profile dnunez
+
+daniel@Yoga:~/Repositorio-Bootcamp/Jenkins/Proyecto_3/Instrucciones$ kubectl get nodes
+NAME                         STATUS   ROLES    AGE   VERSION
+ip-10-0-1-91.ec2.internal    Ready    <none>   93m   v1.34.10-eks-cb19647
+ip-10-0-2-140.ec2.internal   Ready    <none>   12s   v1.34.10-eks-cb19647
+daniel@Yoga:~/Repositorio-Bootcamp/Jenkins/Proyecto_3/Instrucciones$ kubectl get pods -n kargo
+NAME                                              READY   STATUS    RESTARTS   AGE
+kargo-api-68d5547475-5ftpp                        1/1     Running   0          8m36s
+kargo-controller-6b9f4c9ff8-ccr78                 1/1     Running   0          8m36s
+kargo-external-webhooks-server-5b465c5764-tsmzg   1/1     Running   0          8m36s
+kargo-management-controller-75b677657c-z5q2v      1/1     Running   0          8m36s
+kargo-webhooks-server-5655f5fbc8-22xw7            1/1     Running   0          8m36s
+daniel@Yoga:~/Repositorio-Bootcamp/Jenkins/Proyecto_3/Instrucciones$ 
+
+kubectl get svc -n kargo -->Sale puerto 443
+kubectl port-forward svc/kargo-api -n kargo 8083:443
+
+
+Observaciones
+--------------------------------------------------
+Durante el acceso mediante el navegador, `https://localhost:8080` presentó `ERR_TIMED_OUT`, aunque el `port-forward` de Argo CD se encontraba activo y funcionando. La prueba con `https://127.0.0.1:8080` permitió acceder correctamente, confirmando que Argo CD y el `port-forward` estaban operativos. El inconveniente estaba relacionado con la forma en que el navegador estaba intentando conectarse a `localhost`, mientras que `127.0.0.1` apunta directamente a la interfaz de loopback IPv4 donde `kubectl port-forward` estaba escuchando. La prueba `ping localhost` confirmó que `localhost` se resuelve correctamente a `127.0.0.1`, por lo que no existe un problema de resolución; el comportamiento estaba limitado al acceso desde el navegador. Una prueba adicional con `curl -vk https://localhost:8080` permite confirmar si `localhost` funciona correctamente fuera del navegador y determinar que el inconveniente corresponde específicamente a Chrome.
+
+-----------------------------------------------------
+Durante la validación de acceso a Argo CD, `curl -v http://localhost:8080` mostró una respuesta `307 Temporary Redirect` hacia `https://localhost:8080/`, confirmando que HTTP redirige automáticamente a HTTPS. Posteriormente, `curl -vk https://localhost:8080` permitió verificar el handshake TLS y confirmó una respuesta `HTTP/1.1 200 OK`; el parámetro `-k` permitió continuar pese a que el certificado de Argo CD es autofirmado. Por tanto, HTTPS funciona correctamente y el inconveniente observado en el navegador corresponde a la validación del certificado autofirmado, no a un problema de configuración del Service o del port-forward.
+--------------------------
+`curl` y `wget` son clientes HTTP/HTTPS utilizados para realizar solicitudes y transferir archivos. `curl` es especialmente útil para diagnóstico: `curl -v` muestra información detallada de la conexión, `curl -k` omite la validación del certificado TLS y `curl -vk` combina ambas opciones para comprobar TCP, TLS y HTTP sin bloquearse por un certificado autofirmado. Para descargar archivos, `curl -O` guarda el archivo utilizando el mismo nombre del recurso remoto, mientras que `wget` está orientado principalmente a la descarga y guarda automáticamente el contenido recibido. Por otro lado, `ping` utiliza ICMP para comprobar conectividad de red, mientras que `nc -vz` permite comprobar específicamente si un puerto TCP está accesible.

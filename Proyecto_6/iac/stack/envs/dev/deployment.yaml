@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloud-dashboard
+  namespace: dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cloud-dashboard
+  template:
+    metadata:
+      labels:
+        app: cloud-dashboard
+        env: dev
+    spec:
+      containers:
+        - name: cloud-dashboard
+          image: 087692765125.dkr.ecr.us-east-1.amazonaws.com/cloud-dashboard:v1.0.0 # <- esto es lo que se promueve
+          ports:
+            - containerPort: 80

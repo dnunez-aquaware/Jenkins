@@ -1,0 +1,45 @@
+# Image ──── dev ── staging ── prod
+---
+# dev: recibe el Freight directo del Warehouse
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: dev
+  namespace: cloud-dashboard
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: cloud-dashboard
+      sources:
+        direct: true
+---
+# staging: solo acepta Freight que ya se probo (verifico) en dev
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: staging
+  namespace: cloud-dashboard
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: cloud-dashboard
+      sources:
+        stages:
+          - dev
+---
+# prod: solo acepta Freight que ya paso por staging
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: prod
+  namespace: cloud-dashboard
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: cloud-dashboard
+      sources:
+        stages:
+          - staging

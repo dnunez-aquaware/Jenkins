@@ -1,0 +1,12 @@
+# Vigila el repositorio ECR de la Task 3: cada tag nuevo (v1.0.1, v1.1.0...) genera un Freight.
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+metadata:
+  name: cloud-dashboard
+  namespace: cloud-dashboard
+spec:
+  subscriptions:
+    - image:
+        repoURL: 087692765125.dkr.ecr.us-east-1.amazonaws.com/cloud-dashboard
+        imageSelectionStrategy: SemVer
+        discoveryLimit: 5

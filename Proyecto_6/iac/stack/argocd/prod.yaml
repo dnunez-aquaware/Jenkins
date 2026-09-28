@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cloud-dashboard-prod
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/dnunez-aquaware/Jenkins.git
+    targetRevision: master
+    path: Proyecto_6/iac/stack/envs/prod
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prod
+
+  syncPolicy: # sin "automated": el sync de prod se aprueba a mano (UI o argocd app sync)
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,36 @@
+#####################Kargo: Project, Warehouse y Stages###############
+
+# 1. Proyecto (crea el namespace cloud-dashboard)
+kubectl apply -f iac/stack/kargo/project.yaml
+kubectl get projects.kargo.akuity.io
+
+# 2. Credenciales para que Kargo pueda leer el ECR privado
+kubectl create secret generic ecr-creds -n cloud-dashboard \
+  --from-literal=repoURL=087692765125.dkr.ecr.us-east-1.amazonaws.com/cloud-dashboard \
+  --from-literal=awsAccessKeyID="$(aws configure get aws_access_key_id --profile dnunez)" \
+  --from-literal=awsSecretAccessKey="$(aws configure get aws_secret_access_key --profile dnunez)"
+kubectl label secret ecr-creds -n cloud-dashboard kargo.akuity.io/cred-type=image
+
+# 3. Warehouse + Stages
+kubectl apply -f iac/stack/kargo/warehouse.yaml
+kubectl apply -f iac/stack/kargo/stages.yaml
+
+# 4. Verificar
+kubectl get warehouses -n cloud-dashboard
+kubectl get freight -n cloud-dashboard      # una fila por cada tag detectado en ECR
+kubectl get stages -n cloud-dashboard       # dev / staging / prod
+
+# UI: ver el flujo Image -> dev -> staging -> prod
+kubectl port-forward svc/kargo-api -n kargo 8083:443
+# https://127.0.0.1:8083  (usuario admin, password generado en el lab1)
+
+# Probar deteccion: publicar una version nueva y ver que aparece un Freight nuevo
+# (app/release.sh patch  o  el Jenkinsfile de la app)
+kubectl get freight -n cloud-dashboard -w
+
+
+#####################Destruir###############
+
+kubectl delete -f iac/stack/kargo/stages.yaml
+kubectl delete -f iac/stack/kargo/warehouse.yaml
+kubectl delete -f iac/stack/kargo/project.yaml   # borra tambien el namespace y el secret
